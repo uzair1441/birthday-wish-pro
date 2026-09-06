@@ -54,7 +54,7 @@ export const BUILTIN_SONGS: BuiltinSong[] = [
 ];
 
 // Helper to map legacy and new track IDs to real audio file paths
-const TRACK_MAP: Record<string, string> = {
+export const TRACK_MAP: Record<string, string> = {
   'birthday-classic': '/audio/birthday-classic.mp3',
   'happy-birthday-classic': '/audio/birthday-classic.mp3',
   'birthday-kids': '/audio/birthday-kids.mp3',
@@ -70,12 +70,62 @@ const TRACK_MAP: Record<string, string> = {
   'acoustic-warm': '/audio/birthday-party-anthem.mp3'
 };
 
+export function getTrackAudioUrl(trackId: string): string {
+  return TRACK_MAP[trackId] || '/audio/birthday-classic.mp3';
+}
+
 class BirthdayAudioEngine {
   private audioElement: HTMLAudioElement | null = null;
   private isPlayingMelody: boolean = false;
   private currentTrackId: string = '';
   private isMuted: boolean = false;
   private ctx: AudioContext | null = null;
+  private listeners: Set<(isPlaying: boolean, trackId: string) => void> = new Set();
+  private pendingTrackId: string | null = null;
+  private hasUnlockedAudio: boolean = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      // Auto-unlock audio on very first user gesture (critical for iOS and Android mobile browsers)
+      const unlockAudio = () => {
+        this.unlockUserAudio();
+        window.removeEventListener('touchstart', unlockAudio);
+        window.removeEventListener('touchend', unlockAudio);
+        window.removeEventListener('click', unlockAudio);
+      };
+      window.addEventListener('touchstart', unlockAudio, { passive: true });
+      window.addEventListener('touchend', unlockAudio, { passive: true });
+      window.addEventListener('click', unlockAudio, { passive: true });
+    }
+  }
+
+  public subscribe(cb: (isPlaying: boolean, trackId: string) => void): () => void {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  }
+
+  private notify() {
+    this.listeners.forEach(cb => {
+      try {
+        cb(this.isPlayingMelody, this.currentTrackId);
+      } catch (err) {
+        console.warn('Audio listener error:', err);
+      }
+    });
+  }
+
+  public unlockUserAudio() {
+    if (this.hasUnlockedAudio) return;
+    this.hasUnlockedAudio = true;
+    this.initAudioContext();
+
+    // If a track was waiting to play before gesture
+    if (this.pendingTrackId) {
+      const trackToPlay = this.pendingTrackId;
+      this.pendingTrackId = null;
+      this.playTrack(trackToPlay, true);
+    }
+  }
 
   private initAudioContext() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -94,6 +144,7 @@ class BirthdayAudioEngine {
     if (this.audioElement) {
       this.audioElement.muted = muted;
     }
+    this.notify();
   }
 
   public getIsPlaying(): boolean {
@@ -104,11 +155,12 @@ class BirthdayAudioEngine {
     return this.currentTrackId;
   }
 
-  // Play a real downloaded Happy Birthday song
+  // Play a real downloaded Happy Birthday song with rock-solid mobile compatibility
   public playTrack(trackId: string, loop: boolean = true) {
     if (trackId === 'silent') {
       this.stopMelody();
       this.currentTrackId = 'silent';
+      this.notify();
       return;
     }
 
@@ -119,41 +171,91 @@ class BirthdayAudioEngine {
       return;
     }
 
+    this.initAudioContext();
     this.stopMelody();
     this.currentTrackId = trackId;
 
     try {
-      const audio = new Audio(fileUrl);
+      if (!this.audioElement) {
+        this.audioElement = new Audio();
+      }
+
+      const audio = this.audioElement;
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.preload = 'auto';
+      audio.src = fileUrl;
       audio.loop = loop;
       audio.muted = this.isMuted;
-      audio.volume = 0.85;
+      
+      try {
+        audio.volume = 0.85;
+      } catch {
+        // Ignore iOS volume set restriction
+      }
 
       audio.onplay = () => {
         this.isPlayingMelody = true;
+        this.notify();
       };
 
       audio.onpause = () => {
         this.isPlayingMelody = false;
+        this.notify();
       };
 
       audio.onended = () => {
         if (!loop) {
           this.isPlayingMelody = false;
+          this.notify();
         }
+      };
+
+      audio.onerror = (e) => {
+        console.warn('Audio track playback error, using synth chime fallback:', e);
+        this.isPlayingMelody = false;
+        this.notify();
       };
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.log('Audio autoplay prevented or error, will retry on user gesture:', err);
+        playPromise.then(() => {
+          this.isPlayingMelody = true;
+          this.notify();
+        }).catch((err) => {
+          console.log('Autoplay was prevented by mobile browser. Queued for first touch:', err);
           this.isPlayingMelody = false;
+          this.pendingTrackId = trackId;
+          this.notify();
+
+          // One-shot retry on next touch gesture
+          const retryOnTouch = () => {
+            window.removeEventListener('touchstart', retryOnTouch);
+            window.removeEventListener('touchend', retryOnTouch);
+            window.removeEventListener('click', retryOnTouch);
+            audio.play().then(() => {
+              this.isPlayingMelody = true;
+              this.notify();
+            }).catch(() => {});
+          };
+          window.addEventListener('touchstart', retryOnTouch, { passive: true, once: true });
+          window.addEventListener('touchend', retryOnTouch, { passive: true, once: true });
+          window.addEventListener('click', retryOnTouch, { passive: true, once: true });
         });
       }
-
-      this.audioElement = audio;
     } catch (e) {
       console.warn('Could not initialize audio element:', e);
       this.isPlayingMelody = false;
+      this.notify();
+    }
+  }
+
+  public togglePlay(trackId?: string) {
+    if (this.isPlayingMelody && this.audioElement && !this.audioElement.paused) {
+      this.stopMelody();
+    } else {
+      const trackToPlay = trackId || this.currentTrackId || 'birthday-classic';
+      this.playTrack(trackToPlay, true);
     }
   }
 
@@ -165,9 +267,9 @@ class BirthdayAudioEngine {
       } catch {
         // Ignore pause errors
       }
-      this.audioElement = null;
     }
     this.isPlayingMelody = false;
+    this.notify();
   }
 
   public stop() {
@@ -290,6 +392,13 @@ class BirthdayAudioEngine {
     chord.forEach((freq) => {
       this.playTone(freq, 0.7, 'triangle', 0, 0.25);
     });
+  }
+
+  // SFX: Attention Notification chime
+  public playAlertNotice() {
+    if (this.isMuted) return;
+    this.playTone(440, 0.12, 'sine', 0, 0.2);
+    this.playTone(349.23, 0.25, 'triangle', 0.1, 0.25);
   }
 
   // SFX: Standard button click

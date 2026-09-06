@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { BirthdayWishData } from '../../types';
 import { PRESET_MESSAGES } from '../../data/presets';
 import { CUTE_STICKER_LIST, CuteBabySticker } from '../CuteBabySticker';
-import { Image as ImageIcon, Lock, Upload, Trash2, Check } from 'lucide-react';
+import { Image as ImageIcon, Upload, Trash2, Check } from 'lucide-react';
 
 interface StepMessagePhotoProps {
   data: BirthdayWishData;
@@ -245,25 +245,6 @@ export const StepMessagePhoto: React.FC<StepMessagePhotoProps> = ({ data, onChan
             </div>
           </div>
         )}
-      </div>
-
-      {/* Secret Message / Hidden Surprise */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-          <Lock className="w-3.5 h-3.5 text-amber-400" />
-          Secret Surprise Note (Revealed on Tap / Scratch)
-        </label>
-        <input
-          id="input-secret-message"
-          type="text"
-          placeholder="e.g. Check your closet for an actual wrapped present! 🎁 or A surprise dinner is booked at 8 PM!"
-          value={data.secretMessage || ''}
-          onChange={(e) => onChange({ secretMessage: e.target.value })}
-          className="w-full px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20 text-sm transition"
-        />
-        <p className="text-[11px] text-slate-500">
-          The recipient will see a mystery card they tap to reveal this confidential note!
-        </p>
       </div>
     </div>
   );

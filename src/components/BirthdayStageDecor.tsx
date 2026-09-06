@@ -2,18 +2,24 @@ import React from 'react';
 import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { soundManager } from '../utils/audio';
+import { ThemeId } from '../types';
+import { THEME_OPTIONS } from '../data/presets';
 
 interface BirthdayStageDecorProps {
   recipientName?: string;
   age?: number | string;
   showCurtains?: boolean;
+  themeId?: ThemeId;
 }
 
 export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
   recipientName,
   age,
   showCurtains = true,
+  themeId = 'midnight-magic',
 }) => {
+  const themeConfig = THEME_OPTIONS.find(t => t.id === themeId) || THEME_OPTIONS[0];
+
   const handleBalloonClick = (e: React.MouseEvent) => {
     soundManager.playBalloonPop();
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -63,33 +69,47 @@ export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
   }));
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden select-none z-35">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden select-none z-10">
       
-      {/* 1. Dramatic Theatrical Stage Spotlight Beams */}
-      <div className="absolute -top-10 left-1/12 w-96 h-[800px] bg-gradient-to-b from-amber-300/15 via-rose-500/5 to-transparent transform -rotate-18 origin-top-left blur-3xl pointer-events-none animate-spotlight" />
-      <div className="absolute -top-10 right-1/12 w-96 h-[800px] bg-gradient-to-b from-purple-400/15 via-amber-400/5 to-transparent transform rotate-18 origin-top-right blur-3xl pointer-events-none animate-spotlight" style={{ animationDelay: '4s' }} />
+      {/* 1. Dramatic Theatrical Stage Spotlight Beams - Dynamic to Visual Theme! */}
+      <div className={`absolute -top-10 left-1/12 w-96 h-[850px] bg-gradient-to-b ${themeConfig.spotlightLeft} transform -rotate-18 origin-top-left blur-3xl pointer-events-none animate-spotlight`} />
+      <div className={`absolute -top-10 right-1/12 w-96 h-[850px] bg-gradient-to-b ${themeConfig.spotlightRight} transform rotate-18 origin-top-right blur-3xl pointer-events-none animate-spotlight`} style={{ animationDelay: '4s' }} />
+
+      {/* Central Stage Floor Glow matching Theme */}
+      <div 
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[650px] h-[360px] rounded-full blur-3xl pointer-events-none opacity-60"
+        style={{ background: themeConfig.floorGlow }}
+      />
+
+      {/* Ambient Ceiling Aura */}
+      <div 
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[320px] rounded-full blur-3xl pointer-events-none opacity-45"
+        style={{ background: themeConfig.ambientAura }}
+      />
 
       {/* 2. Overhead Theatrical Stage Curtains & Velvet Swag Drapes */}
       {showCurtains && (
         <>
           {/* Top Valance Scallop Trim */}
-          <div className="absolute top-0 left-0 right-0 h-12 sm:h-16 bg-gradient-to-b from-[#1c040d] via-[#2d0516] to-[#1c040d]/95 border-b-2 border-amber-400/50 shadow-2xl z-20 flex items-start justify-center overflow-hidden">
-            <svg className="w-full h-9 text-rose-900 fill-current opacity-90" viewBox="0 0 1200 40" preserveAspectRatio="none">
+          <div 
+            className="absolute top-0 left-0 right-0 h-10 sm:h-16 border-b-2 border-amber-400/50 shadow-2xl z-10 flex items-start justify-center overflow-hidden"
+            style={{ background: `linear-gradient(to bottom, ${themeConfig.curtainStop1}, ${themeConfig.curtainStop2}, ${themeConfig.curtainStop1})` }}
+          >
+            <svg className="w-full h-8 sm:h-9 opacity-80 fill-current" style={{ color: themeConfig.curtainStop3 }} viewBox="0 0 1200 40" preserveAspectRatio="none">
               <path d="M0,0 Q100,35 200,0 Q300,35 400,0 Q500,35 600,0 Q700,35 800,0 Q900,35 1000,0 Q1100,35 1200,0 L1200,0 L0,0 Z" />
             </svg>
             {/* Golden fringe beads along top */}
-            <div className="absolute bottom-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-amber-200 to-amber-400 opacity-90 shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
+            <div className="absolute bottom-0 inset-x-0 h-1 sm:h-1.5 bg-gradient-to-r from-amber-400 via-amber-200 to-amber-400 opacity-90 shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
           </div>
 
-          {/* Left Stage Curtain & Tieback (Stays Fixed on Screen) */}
-          <div className="absolute top-0 left-0 w-20 sm:w-36 md:w-48 lg:w-56 h-[380px] sm:h-[460px] pointer-events-none z-20">
+          {/* Left Stage Curtain & Tieback (Frames stage wings cleanly without blocking mobile center text) */}
+          <div className="absolute top-0 left-0 w-7 sm:w-28 md:w-44 lg:w-56 h-[200px] sm:h-[460px] pointer-events-none z-10 opacity-70 sm:opacity-100 transition-all">
             <svg className="w-full h-full filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]" viewBox="0 0 200 460" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="curtainGradLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#4c0519" />
-                  <stop offset="35%" stopColor="#881337" />
-                  <stop offset="70%" stopColor="#9f1239" />
-                  <stop offset="100%" stopColor="#4c0519" />
+                  <stop offset="0%" stopColor={themeConfig.curtainStop1} />
+                  <stop offset="50%" stopColor={themeConfig.curtainStop2} />
+                  <stop offset="100%" stopColor={themeConfig.curtainStop3} />
                 </linearGradient>
                 <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#F59E0B" />
@@ -99,7 +119,7 @@ export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
               </defs>
               {/* Velvet folds */}
               <path d="M0,0 C60,20 120,40 180,0 C160,140 70,220 50,320 C30,370 70,420 120,460 L0,460 Z" fill="url(#curtainGradLeft)" />
-              <path d="M30,0 C80,30 110,60 140,0 C120,120 50,210 35,310 C20,360 45,410 80,460 L0,460 Z" fill="#be123c" opacity="0.3" />
+              <path d="M30,0 C80,30 110,60 140,0 C120,120 50,210 35,310 C20,360 45,410 80,460 L0,460 Z" fill={themeConfig.curtainStop2} opacity="0.35" />
               {/* Golden Rope Tie-back */}
               <ellipse cx="60" cy="270" rx="35" ry="10" fill="none" stroke="url(#goldRibbon)" strokeWidth="4" />
               {/* Tassel */}
@@ -107,20 +127,19 @@ export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
             </svg>
           </div>
 
-          {/* Right Stage Curtain & Tieback (Stays Fixed on Screen) */}
-          <div className="absolute top-0 right-0 w-20 sm:w-36 md:w-48 lg:w-56 h-[380px] sm:h-[460px] pointer-events-none z-20">
+          {/* Right Stage Curtain & Tieback (Frames stage wings cleanly without blocking mobile center text) */}
+          <div className="absolute top-0 right-0 w-7 sm:w-28 md:w-44 lg:w-56 h-[200px] sm:h-[460px] pointer-events-none z-10 opacity-70 sm:opacity-100 transition-all">
             <svg className="w-full h-full filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]" viewBox="0 0 200 460" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="curtainGradRight" x1="100%" y1="0%" x2="0%" y2="0%">
-                  <stop offset="0%" stopColor="#4c0519" />
-                  <stop offset="35%" stopColor="#881337" />
-                  <stop offset="70%" stopColor="#9f1239" />
-                  <stop offset="100%" stopColor="#4c0519" />
+                  <stop offset="0%" stopColor={themeConfig.curtainStop1} />
+                  <stop offset="50%" stopColor={themeConfig.curtainStop2} />
+                  <stop offset="100%" stopColor={themeConfig.curtainStop3} />
                 </linearGradient>
               </defs>
               {/* Velvet folds */}
               <path d="M200,0 C140,20 80,40 20,0 C40,140 130,220 150,320 C170,370 130,420 80,460 L200,460 Z" fill="url(#curtainGradRight)" />
-              <path d="M170,0 C120,30 90,60 60,0 C80,120 150,210 165,310 C180,360 155,410 120,460 L200,460 Z" fill="#be123c" opacity="0.3" />
+              <path d="M170,0 C120,30 90,60 60,0 C80,120 150,210 165,310 C180,360 155,410 120,460 L200,460 Z" fill={themeConfig.curtainStop2} opacity="0.35" />
               {/* Golden Rope Tie-back */}
               <ellipse cx="140" cy="270" rx="35" ry="10" fill="none" stroke="url(#goldRibbon)" strokeWidth="4" />
               {/* Tassel */}

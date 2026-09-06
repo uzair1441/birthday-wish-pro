@@ -8,7 +8,6 @@ import { soundManager } from './utils/audio';
 import { Navbar } from './components/Navbar';
 import { AnimatedBackground } from './components/AnimatedBackground';
 import { AnimatedHero } from './components/AnimatedHero';
-import { LiveCompanionDock } from './components/LiveCompanionDock';
 import { StepIndicator } from './components/StepIndicator';
 import { StepRecipient } from './components/steps/StepRecipient';
 import { StepCakeCandles } from './components/steps/StepCakeCandles';
@@ -18,6 +17,7 @@ import { StepInteractions } from './components/steps/StepInteractions';
 import { StepPaymentShare } from './components/steps/StepPaymentShare';
 import { CelebrationView } from './components/CelebrationView';
 import { AccountSettingsModal } from './components/AccountSettingsModal';
+import { ValidationPopupNotification, ValidationNotificationData } from './components/ValidationPopupNotification';
 
 import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 
@@ -37,6 +37,9 @@ const INITIAL_WISH: BirthdayWishData = {
   headline: 'Wishing You The Happiest Birthday Ever!',
   message: 'Happy Birthday! On your special day, I hope you are surrounded by love, warmth, and laughter. You bring so much joy into everyone’s life. May this coming year fulfill your biggest dreams and keep you smiling every single day! 🎂✨',
   secretMessage: '',
+  giftBoxStyle: 'royal-crimson',
+  surpriseGift: 'chocolates-roses',
+  giftNote: 'A sweet little surprise curated with lots of love! 💖',
   enableCutCake: true,
   enablePopBalloons: true,
   enableUnwrapGift: true,
@@ -54,6 +57,14 @@ export default function App() {
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [standaloneWish, setStandaloneWish] = useState<BirthdayWishData | null>(null);
+
+  // Validation state & notification modal/toast
+  const [validationNotice, setValidationNotice] = useState<ValidationNotificationData | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    recipientName?: boolean;
+    senderName?: boolean;
+    nickname?: boolean;
+  }>({});
 
   // Payment configuration
   const [accountConfig, setAccountConfig] = useState<PaymentAccountConfig>(() => {
@@ -92,6 +103,18 @@ export default function App() {
 
   const handleUpdateWish = (updates: Partial<BirthdayWishData>) => {
     setWish(prev => ({ ...prev, ...updates }));
+
+    // Dynamically clear validation error when the user types in that field
+    setValidationErrors(prev => {
+      const next = { ...prev };
+      if (updates.recipientName !== undefined && updates.recipientName.trim().length > 0) {
+        next.recipientName = false;
+      }
+      if (updates.senderName !== undefined && updates.senderName.trim().length > 0) {
+        next.senderName = false;
+      }
+      return next;
+    });
   };
 
   const handleSaveAccounts = (updated: PaymentAccountConfig) => {
@@ -103,14 +126,84 @@ export default function App() {
     }
   };
 
+  const focusFirstMissingField = (elementId: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+  };
+
+  // Step 1 Validation logic:
+  // Mandatory fields: Birthday Person Name & Sender Name (Nickname is optional)
+  // If both mandatory fields missing => "Enter Your Data"
+  // If one specific mandatory field missing => specific message ("Enter Birthday Person Name" or "Enter the Sender Name")
+  const validateStep1 = (): boolean => {
+    const isRecipientMissing = !wish.recipientName.trim();
+    const isSenderMissing = !wish.senderName.trim();
+
+    // Condition 1: BOTH mandatory fields are missing
+    if (isRecipientMissing && isSenderMissing) {
+      setValidationErrors({
+        recipientName: true,
+        senderName: true,
+        nickname: false
+      });
+      setValidationNotice({
+        title: 'Enter Your Data',
+        message: 'You missed that thing! Please enter Birthday Person Name & Sender Name.',
+        missingFields: ['recipientName', 'senderName']
+      });
+      soundManager.playAlertNotice();
+      focusFirstMissingField('input-recipient-name');
+      return false;
+    }
+
+    // Condition 2: Only Birthday Person Name is missing
+    if (isRecipientMissing) {
+      setValidationErrors({
+        recipientName: true,
+        senderName: false,
+        nickname: false
+      });
+      setValidationNotice({
+        title: 'Enter Birthday Person Name',
+        message: 'You missed that thing! Please enter Birthday Person Name.',
+        missingFields: ['recipientName']
+      });
+      soundManager.playAlertNotice();
+      focusFirstMissingField('input-recipient-name');
+      return false;
+    }
+
+    // Condition 3: Only Sender Name is missing
+    if (isSenderMissing) {
+      setValidationErrors({
+        recipientName: false,
+        senderName: true,
+        nickname: false
+      });
+      setValidationNotice({
+        title: 'Enter the Sender Name',
+        message: 'You missed that thing! Please enter the Sender Name.',
+        missingFields: ['senderName']
+      });
+      soundManager.playAlertNotice();
+      focusFirstMissingField('input-sender-name');
+      return false;
+    }
+
+    // Both mandatory fields are filled
+    setValidationErrors({});
+    setValidationNotice(null);
+    return true;
+  };
+
   const handleNextStep = () => {
     if (currentStep === 1) {
-      if (!wish.recipientName.trim()) {
-        alert('Please enter the name of the birthday person to continue.');
-        return;
-      }
-      if (!wish.senderName.trim()) {
-        alert('Please enter your name (the sender) to continue.');
+      if (!validateStep1()) {
         return;
       }
     }
@@ -121,13 +214,24 @@ export default function App() {
     if (next > maxReachedStep) {
       setMaxReachedStep(next);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Directly stay and scroll into the Step Wizard section (no jumping back to hero/top)
+    setTimeout(() => {
+      const wizardEl = document.getElementById('step-wizard-section');
+      if (wizardEl) {
+        wizardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   };
 
   const handlePrevStep = () => {
     soundManager.playClick();
     setCurrentStep(prev => Math.max(1, prev - 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      const wizardEl = document.getElementById('step-wizard-section');
+      if (wizardEl) {
+        wizardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   };
 
   const handleResetForm = () => {
@@ -168,6 +272,17 @@ export default function App() {
       {/* Dynamic Animated Ambient Lights & Background Physics */}
       <AnimatedBackground />
 
+      {/* Validation Notification Modal/Toast */}
+      <ValidationPopupNotification
+        notification={validationNotice}
+        onClose={() => setValidationNotice(null)}
+        onFocusField={(fieldKey) => {
+          const id = fieldKey === 'recipientName' ? 'input-recipient-name' :
+                     fieldKey === 'nickname' ? 'input-nickname' : 'input-sender-name';
+          focusFirstMissingField(id);
+        }}
+      />
+
       {/* Top Header */}
       <Navbar
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -176,23 +291,39 @@ export default function App() {
         isUnlocked={wish.isPaid}
       />
 
-      {/* Animated Hero Presentation Showcase (Modern WordPress/Webflow Animation Style) */}
-      <AnimatedHero
-        onQuickPreview={() => setIsPreviewOpen(true)}
-        onScrollToBuilder={() => {
-          const el = document.getElementById('step-wizard-section');
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
+      {/* Animated Hero Presentation Showcase (Only shown on Step 1 / Main Page, hidden on Step 2, 3, 4, 5) */}
+      {currentStep === 1 && (
+        <AnimatedHero
+          onQuickPreview={() => setIsPreviewOpen(true)}
+          onScrollToBuilder={() => {
+            const el = document.getElementById('step-wizard-section');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+      )}
 
       {/* Main Wizard Area */}
-      <main id="step-wizard-section" className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6 z-10">
+      <main id="step-wizard-section" className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6 z-10 scroll-mt-20">
         
         {/* Step Progression Bar with Glassmorphic Floating Dock */}
         <div className="rounded-3xl p-4 sm:p-5 modern-animated-card">
           <StepIndicator
             currentStep={currentStep}
-            onSelectStep={(s) => setCurrentStep(s)}
+            onSelectStep={(s) => {
+              if (currentStep === 1 && s > 1) {
+                if (!validateStep1()) {
+                  return;
+                }
+              }
+              soundManager.playClick();
+              setCurrentStep(s);
+              setTimeout(() => {
+                const wizardEl = document.getElementById('step-wizard-section');
+                if (wizardEl) {
+                  wizardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 50);
+            }}
             maxReachedStep={maxReachedStep}
           />
         </div>
@@ -215,6 +346,7 @@ export default function App() {
                 <StepRecipient
                   data={wish}
                   onChange={handleUpdateWish}
+                  errors={validationErrors}
                 />
               )}
 
@@ -305,12 +437,6 @@ export default function App() {
         </section>
 
       </main>
-
-      {/* Floating Interactive Live Companion Card */}
-      <LiveCompanionDock
-        wish={wish}
-        onPreview={() => setIsPreviewOpen(true)}
-      />
 
       {/* Account Settings Modal */}
       <AccountSettingsModal

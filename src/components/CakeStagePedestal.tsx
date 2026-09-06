@@ -17,7 +17,7 @@ export const CakeStagePedestal: React.FC<CakeStagePedestalProps> = ({
       <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 sm:w-96 h-80 bg-gradient-to-b from-amber-300/20 via-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* 2. Elevated Luxury Bakery Stage Card */}
-      <div className="w-full rounded-3xl bg-slate-950/75 border border-amber-400/25 p-5 sm:p-7 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative overflow-hidden flex flex-col items-center">
+      <div className="w-full rounded-3xl bg-[#0b0818]/95 border border-amber-400/30 p-4 sm:p-7 shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative overflow-hidden flex flex-col items-center">
         
         {/* Subtle Ambient Corner Glows */}
         <div className="absolute -top-12 -left-12 w-32 h-32 bg-rose-500/15 rounded-full blur-2xl pointer-events-none" />

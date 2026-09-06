@@ -167,10 +167,19 @@ export const StepThemeMusic: React.FC<StepThemeMusicProps> = ({ data, onChange }
 
       {/* Theme Atmosphere */}
       <div className="space-y-3 pt-2">
-        <label className="text-xs font-semibold text-slate-300 block">
-          Visual Lighting Theme:
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+            <span>✨</span>
+            <span>Visual Lighting Theme & Stage Atmosphere:</span>
+          </label>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-300 font-semibold border border-purple-400/25">
+            5 DYNAMIC STAGE ATMOSPHERES
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-400">
+          Each theme transforms the stage with authentic theatrical spotlight beams, velvet drapery hues, and ambient glow:
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {THEME_OPTIONS.map((theme) => {
             const isSelected = data.theme === theme.id;
             return (
@@ -185,14 +194,22 @@ export const StepThemeMusic: React.FC<StepThemeMusicProps> = ({ data, onChange }
                     : 'border-white/[0.08] hover:border-white/20 bg-white/[0.02]'
                 }`}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${theme.bgGradient} opacity-70`} />
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-sm font-bold text-white">{theme.name}</span>
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-bold shadow">
-                      <Check className="w-3 h-3 stroke-[3.5]" />
-                    </div>
-                  )}
+                <div className={`absolute inset-0 bg-gradient-to-br ${theme.bgGradient} opacity-85`} />
+                <div className="relative z-10 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <span>{theme.emoji}</span>
+                      <span>{theme.name}</span>
+                    </span>
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-bold shadow">
+                        <Check className="w-3 h-3 stroke-[3.5]" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-300/80 leading-snug line-clamp-2">
+                    {theme.lightingDesc}
+                  </p>
                 </div>
               </button>
             );
@@ -201,10 +218,43 @@ export const StepThemeMusic: React.FC<StepThemeMusicProps> = ({ data, onChange }
       </div>
 
       {/* Floating Particles */}
-      <div className="space-y-3 pt-2">
-        <label className="text-xs font-semibold text-slate-300 block">
-          Floating Celebration Effects:
-        </label>
+      <div className="space-y-3 pt-3 border-t border-white/[0.06]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <span>🎈</span>
+              <span>Floating Celebration Effects (Choose which to display):</span>
+            </label>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              These animations float across the recipient screen during the party. Tap any item to turn ON/OFF:
+            </p>
+          </div>
+          
+          {/* Quick Action: Select All / Clear All */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playClick();
+                onChange({ particles: ['balloons', 'confetti', 'stars', 'hearts'] });
+              }}
+              className="px-2.5 py-1 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 text-[11px] font-bold border border-amber-400/25 transition cursor-pointer"
+            >
+              Choose All (4/4)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playClick();
+                onChange({ particles: [] });
+              }}
+              className="px-2 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white text-[11px] font-semibold border border-white/[0.08] transition cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {PARTICLE_OPTIONS.map((item) => {
             const active = (data.particles || []).includes(item.id as any);
@@ -213,14 +263,21 @@ export const StepThemeMusic: React.FC<StepThemeMusicProps> = ({ data, onChange }
                 key={item.id}
                 type="button"
                 onClick={() => handleParticleToggle(item.id as any)}
-                className={`p-3.5 rounded-2xl border flex items-center gap-2.5 text-xs transition cursor-pointer active:scale-95 ${
+                className={`p-3.5 rounded-2xl border flex items-center justify-between gap-2.5 text-xs transition cursor-pointer active:scale-95 ${
                   active
-                    ? 'bg-gradient-to-r from-rose-500/20 to-amber-500/20 border-rose-400 text-rose-200 font-semibold shadow-md'
+                    ? 'bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-purple-500/20 border-rose-400 text-white font-bold shadow-md ring-1 ring-rose-400/30'
                     : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+                <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] shrink-0 ${
+                  active ? 'bg-rose-500 text-white shadow-xs font-bold' : 'border border-white/20 bg-black/20'
+                }`}>
+                  {active ? '✓' : ''}
+                </div>
               </button>
             );
           })}

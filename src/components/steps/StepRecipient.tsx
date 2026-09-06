@@ -8,6 +8,11 @@ import { soundManager } from '../../utils/audio';
 interface StepRecipientProps {
   data: BirthdayWishData;
   onChange: (updates: Partial<BirthdayWishData>) => void;
+  errors?: {
+    recipientName?: boolean;
+    senderName?: boolean;
+    nickname?: boolean;
+  };
 }
 
 const RELATIONSHIPS = [
@@ -23,21 +28,7 @@ const RELATIONSHIPS = [
   'Special Someone'
 ];
 
-const MILESTONES = [
-  { age: 16, label: 'Sweet 16', tag: '👑' },
-  { age: 18, label: 'Legal & Fabulous', tag: '🥂' },
-  { age: 21, label: '21st Key to Life', tag: '💎' },
-  { age: 25, label: 'Quarter Century', tag: '✨' },
-  { age: 30, label: 'Dirty Thirty', tag: '🔥' },
-  { age: 40, label: 'Fabulous Forty', tag: '🌟' },
-  { age: 50, label: 'Golden Jubilee', tag: '🏆' },
-];
-
-export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange }) => {
-  const handleMilestoneClick = (m: typeof MILESTONES[0]) => {
-    soundManager.playClick();
-    onChange({ age: m.age, milestoneTitle: `${m.label} (${m.age})` });
-  };
+export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange, errors }) => {
   return (
     <div id="step-recipient-container" className="space-y-6">
       <div className="border-b border-white/[0.08] pb-5 flex items-center justify-between">
@@ -63,10 +54,17 @@ export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange }) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Recipient Full Name */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-amber-400" />
-            Birthday Person's Name <span className="text-rose-400">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-amber-400" />
+              <span>Birthday Person's Name <span className="text-rose-400">*</span></span>
+            </label>
+            {errors?.recipientName && (
+              <span className="text-[11px] font-bold text-rose-400 animate-pulse">
+                ⚠️ Name Required
+              </span>
+            )}
+          </div>
           <input
             id="input-recipient-name"
             type="text"
@@ -74,23 +72,34 @@ export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange }) 
             placeholder="e.g. Ayesha Khan or Zain"
             value={data.recipientName}
             onChange={(e) => onChange({ recipientName: e.target.value })}
-            className="w-full px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20 text-sm transition"
+            className={`w-full px-4 py-3 rounded-2xl text-white placeholder-slate-500 focus:outline-none text-sm transition ${
+              errors?.recipientName
+                ? 'bg-rose-500/10 border-2 border-rose-500 ring-2 ring-rose-500/30 focus:border-rose-400'
+                : 'bg-white/[0.04] border border-white/[0.1] focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20'
+            }`}
           />
+          {errors?.recipientName && (
+            <p className="text-[11px] text-rose-400 font-medium">
+              Please enter the birthday person's name to continue.
+            </p>
+          )}
         </div>
 
-        {/* Nickname / Pet name */}
+        {/* Nickname / Pet name (Optional) */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-rose-400" />
-            Nickname / Special Call Name (Optional)
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+              <span>Nickname / Special Call Name <span className="text-slate-400 font-normal text-[11px]">(Optional)</span></span>
+            </label>
+          </div>
           <input
             id="input-nickname"
             type="text"
-            placeholder="e.g. Queen, Rockstar, Champ, Angel"
+            placeholder="e.g. Queen, Rockstar, Champ, Angel (Optional)"
             value={data.nickname || ''}
             onChange={(e) => onChange({ nickname: e.target.value })}
-            className="w-full px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20 text-sm transition"
+            className="w-full px-4 py-3 rounded-2xl text-white placeholder-slate-500 focus:outline-none text-sm transition bg-white/[0.04] border border-white/[0.1] focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20"
           />
         </div>
 
@@ -116,35 +125,21 @@ export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange }) 
             />
             <span className="text-xs font-medium text-slate-400">Years Young</span>
           </div>
-
-          {/* Quick milestone picks */}
-          <div className="flex flex-wrap gap-1.5 pt-2">
-            {MILESTONES.map((m) => (
-              <motion.button
-                key={m.age}
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleMilestoneClick(m)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition cursor-pointer ${
-                  data.age === m.age 
-                    ? 'bg-gradient-to-r from-amber-400/25 to-rose-400/25 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/30' 
-                    : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-slate-200 hover:border-white/20'
-                }`}
-              >
-                <span>{m.tag}</span>
-                <span>{m.label}</span>
-              </motion.button>
-            ))}
-          </div>
         </div>
 
         {/* Sender Name */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Heart className="w-3.5 h-3.5 text-rose-400" />
-            Your Name (Sender) <span className="text-rose-400">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Heart className="w-3.5 h-3.5 text-rose-400" />
+              <span>Your Name (Sender) <span className="text-rose-400">*</span></span>
+            </label>
+            {errors?.senderName && (
+              <span className="text-[11px] font-bold text-rose-400 animate-pulse">
+                ⚠️ Sender Required
+              </span>
+            )}
+          </div>
           <input
             id="input-sender-name"
             type="text"
@@ -152,8 +147,17 @@ export const StepRecipient: React.FC<StepRecipientProps> = ({ data, onChange }) 
             placeholder="e.g. Uzair or Your Bestie"
             value={data.senderName}
             onChange={(e) => onChange({ senderName: e.target.value })}
-            className="w-full px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20 text-sm transition"
+            className={`w-full px-4 py-3 rounded-2xl text-white placeholder-slate-500 focus:outline-none text-sm transition ${
+              errors?.senderName
+                ? 'bg-rose-500/10 border-2 border-rose-500 ring-2 ring-rose-500/30 focus:border-rose-400'
+                : 'bg-white/[0.04] border border-white/[0.1] focus:border-amber-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-amber-400/20'
+            }`}
           />
+          {errors?.senderName && (
+            <p className="text-[11px] text-rose-400 font-medium">
+              Please enter your name (the sender) to continue.
+            </p>
+          )}
         </div>
 
         {/* Relationship */}

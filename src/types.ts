@@ -7,6 +7,15 @@ export type CakeStyleId =
 
 export type ThemeId = 'midnight-magic' | 'golden-glamour' | 'pastel-blossom' | 'neon-party' | 'velvet-sunset';
 
+export type GiftBoxStyleId = 'royal-crimson' | 'midnight-gold' | 'pastel-rose' | 'emerald-luxury';
+
+export type SurpriseGiftId = 
+  | 'chocolates-roses'
+  | 'golden-trophy'
+  | 'treat-voucher'
+  | 'plush-teddy'
+  | 'wishing-jar';
+
 export type MusicTrackId = 
   | 'birthday-classic'
   | 'birthday-kids'
@@ -49,6 +58,11 @@ export interface BirthdayWishData {
   photoUrl?: string;
   photoCaption?: string;
   
+  // Surprise Gift Box & Special Present
+  giftBoxStyle?: GiftBoxStyleId;
+  surpriseGift?: SurpriseGiftId;
+  giftNote?: string;
+
   // Interactive features enabled
   enableCutCake?: boolean;
   enablePopBalloons: boolean;
@@ -93,10 +107,18 @@ export interface CakeOption {
 export interface ThemeOption {
   id: ThemeId;
   name: string;
+  lightingDesc: string;
   bgGradient: string;
   cardBg: string;
   accentColor: string;
   textColor: string;
+  spotlightLeft: string;
+  spotlightRight: string;
+  ambientAura: string;
+  floorGlow: string;
+  curtainStop1: string;
+  curtainStop2: string;
+  curtainStop3: string;
   emoji: string;
   fluentEmojiId?: string;
 }

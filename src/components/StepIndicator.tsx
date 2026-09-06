@@ -13,7 +13,7 @@ const STEPS = [
   { step: 2, label: 'Birthday Cake', shortLabel: 'Cake 🎂', icon: Cake, desc: 'Bakery Cake & Candles' },
   { step: 3, label: 'Party Music', shortLabel: 'Music 🎵', icon: Music, desc: 'Celebration Soundtracks' },
   { step: 4, label: 'Birthday Card', shortLabel: 'Card 💌', icon: Heart, desc: 'Love Letter & Photos' },
-  { step: 5, label: 'Party Magic', shortLabel: 'Magic 🎁', icon: Sparkles, desc: 'Balloons & Surprises' },
+  { step: 5, label: 'Surprise Gift', shortLabel: 'Gift 🎁', icon: Gift, desc: 'Luxury Box & Present' },
   { step: 6, label: 'Send Wish', shortLabel: 'Send 🚀', icon: Send, desc: 'WhatsApp & Share Link' }
 ];
 

@@ -243,3 +243,39 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+/* Realistic 3D Physical Greeting Card (Bi-Fold Cardboard) */
+.card-perspective {
+  perspective: 1600px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Realistic physical cardboard card paper texture */
+.paper-texture-ivory {
+  background-color: #fffef7;
+  background-image: 
+    radial-gradient(#d6c9b3 0.75px, transparent 0.75px),
+    linear-gradient(to right, rgba(0,0,0,0.02) 1px, transparent 1px);
+  background-size: 16px 16px, 100% 100%;
+}
+
+.paper-crease-shadow {
+  box-shadow: inset 18px 0 25px -15px rgba(0, 0, 0, 0.25),
+              inset -18px 0 25px -15px rgba(0, 0, 0, 0.25);
+}
+
+.cardboard-cover-texture {
+  background: radial-gradient(circle at 50% 30%, #3e0c1f 0%, #20040e 100%);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 
+              inset 0 0 0 2px rgba(251, 191, 36, 0.35),
+              inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+

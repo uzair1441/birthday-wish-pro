@@ -46,19 +46,30 @@ export const InteractiveCake: React.FC<InteractiveCakeProps> = ({
   return (
     <div id="interactive-cake-container" className="w-full flex flex-col items-center select-none py-2">
       
-      {/* Real Cake Photo Card - Sized to fit box cleanly */}
-      <div className="relative w-full max-w-[320px] sm:max-w-[360px] aspect-[4/3] sm:h-64 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/20 group bg-slate-950">
+      {/* Real Cake Photo Card - Sized 1:1 square for crisp native 1024x1024 resolution without distortion */}
+      <div className="relative w-full max-w-[280px] sm:max-w-[340px] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/20 group bg-[#090714] transform-gpu">
         <img 
           src={cake.realCakeImageUrl} 
           alt={cake.name}
+          loading="eager"
+          decoding="async"
           referrerPolicy="no-referrer"
-          className={`w-full h-full object-cover transition-transform duration-700 ${
-            isCakeCut ? 'scale-105 filter brightness-95' : 'group-hover:scale-105'
-          }`}
+          className="w-full h-full object-cover select-none"
+          style={{
+            imageRendering: '-webkit-optimize-contrast',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'translateZ(0)',
+          }}
         />
 
         {/* Subtle Vignette for clean contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
+
+        {/* Cut effect overlay */}
+        {isCakeCut && (
+          <div className="absolute inset-0 bg-black/15 pointer-events-none" />
+        )}
 
         {/* Knife Slicing Animation */}
         {isSlicing && (

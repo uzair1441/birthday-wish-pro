@@ -8,6 +8,9 @@ import { BirthdayStageDecor } from './BirthdayStageDecor';
 import { StatusVideoGenerator } from './StatusVideoGenerator';
 import { soundManager, BUILTIN_SONGS } from '../utils/audio';
 import { CuteBabySticker } from './CuteBabySticker';
+import { BirthdayWishHeader } from './BirthdayWishHeader';
+import { RealBifoldBirthdayCard } from './RealBifoldBirthdayCard';
+import { InteractiveGiftBox } from './InteractiveGiftBox';
 import { 
   Volume2, 
   VolumeX, 
@@ -19,7 +22,9 @@ import {
   Unlock,
   Film,
   Gift,
-  Smile
+  Smile,
+  Play,
+  Pause
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -54,6 +59,7 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
 }) => {
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isPlayingMusic, setIsPlayingMusic] = useState<boolean>(soundManager.getIsPlaying());
   const [isCakeCut, setIsCakeCut] = useState<boolean>(false);
   const [isGiftOpened, setIsGiftOpened] = useState<boolean>(false);
   const [isSecretRevealed, setIsSecretRevealed] = useState<boolean>(false);
@@ -62,6 +68,14 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
   const [latestBlessing, setLatestBlessing] = useState<string | null>(null);
   const [showStatusVideoModal, setShowStatusVideoModal] = useState<boolean>(false);
   const [mysteryTapped, setMysteryTapped] = useState<boolean>(false);
+
+  // Subscribe to real-time audio playback status changes
+  useEffect(() => {
+    const unsub = soundManager.subscribe((playing) => {
+      setIsPlayingMusic(playing);
+    });
+    return unsub;
+  }, []);
 
   const theme = THEME_OPTIONS.find(t => t.id === wish.theme) || THEME_OPTIONS[0];
 
@@ -90,10 +104,12 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
   }, [wish.enablePopBalloons]);
 
   const handleStartCelebration = () => {
+    soundManager.unlockUserAudio();
     setHasStarted(true);
     soundManager.setMuted(false);
-    // Play the built-in selected song automatically
-    soundManager.playTrack(wish.musicTrack || 'happy-birthday-classic', true);
+    setIsMuted(false);
+    // Play the built-in selected song automatically with mobile unlock
+    soundManager.playTrack(wish.musicTrack || 'birthday-classic', true);
 
     // Welcome confetti
     confetti({
@@ -103,12 +119,23 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
     });
   };
 
+  const handleToggleMusic = () => {
+    soundManager.unlockUserAudio();
+    if (isPlayingMusic) {
+      soundManager.stopMelody();
+    } else {
+      soundManager.setMuted(false);
+      setIsMuted(false);
+      soundManager.playTrack(wish.musicTrack || 'birthday-classic', true);
+    }
+  };
+
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
     soundManager.setMuted(nextMuted);
     if (!nextMuted && !soundManager.getIsPlaying()) {
-      soundManager.playTrack(wish.musicTrack || 'happy-birthday-classic', true);
+      soundManager.playTrack(wish.musicTrack || 'birthday-classic', true);
     }
   };
 
@@ -192,7 +219,12 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
       className={`min-h-screen w-full relative overflow-x-hidden bg-gradient-to-br ${theme.bgGradient} text-white select-none flex flex-col`}
     >
       {/* 🎭 Authentic Grand Birthday Stage Decorations (Curtains, Bunting, Balloon Pillars, Fairy Lights, Spotlights) */}
-      <BirthdayStageDecor recipientName={wish.recipientName} age={wish.age} showCurtains={true} />
+      <BirthdayStageDecor 
+        recipientName={wish.recipientName} 
+        age={wish.age} 
+        showCurtains={true} 
+        themeId={wish.theme} 
+      />
 
       {/* Subtle Fairy Light String Curtain & Sparkling Stage Dust */}
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff18_1px,transparent_1px)] [background-size:28px_28px] pointer-events-none -z-0 opacity-70" />
@@ -240,102 +272,27 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
         </div>
       )}
 
-      {/* Top Floating Action Bar */}
-      <header className="relative z-40 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {onExitPreview && (
-            <button
-              onClick={onExitPreview}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/20 text-xs font-semibold text-slate-200 backdrop-blur-md transition cursor-pointer shadow-lg"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Editor</span>
-            </button>
-          )}
-
-          {isStandaloneRecipient && (
-            <a
-              href="/"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/20 text-xs font-semibold text-rose-300 backdrop-blur-md transition shadow-lg"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Create Your Own Wish</span>
-            </a>
-          )}
-        </div>
-
-        {/* Right Action Controls */}
-        <div className="flex items-center gap-2">
-          {hasStarted && (
-            <>
-              {/* Status Video Button */}
-              <button
-                id="btn-open-status-video"
-                type="button"
-                onClick={() => setShowStatusVideoModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-rose-500/25 transition active:scale-95 cursor-pointer"
-              >
-                <Film className="w-3.5 h-3.5" />
-                <span>Put on Status (30s Video)</span>
-              </button>
-
-              {wish.enableConfettiPopper && (
-                <button
-                  onClick={handleFireConfetti}
-                  title="Fire Party Poppers!"
-                  className="p-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/20 text-amber-400 backdrop-blur-md transition active:scale-90 cursor-pointer shadow-lg"
-                >
-                  <PartyPopper className="w-4 h-4" />
-                </button>
-              )}
-
-              <button
-                onClick={handleResetCelebration}
-                title="Replay Celebration"
-                className="p-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/20 text-slate-300 backdrop-blur-md transition active:scale-90 cursor-pointer shadow-lg"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={handleToggleMute}
-                title={isMuted ? 'Turn Sound On' : 'Mute Sound'}
-                className="p-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/20 text-slate-200 backdrop-blur-md transition active:scale-90 cursor-pointer shadow-lg"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />}
-              </button>
-            </>
-          )}
-        </div>
-      </header>
-
       {/* 1. Pre-Start Greeting Envelope Screen */}
       {!hasStarted ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-20">
+        <div className="flex-1 flex flex-col items-center justify-center px-3.5 sm:px-6 py-6 text-center relative z-30 w-full">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-md p-8 rounded-[2.5rem] bg-slate-950/85 border border-white/20 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden modern-animated-card"
+            className="w-full max-w-md p-4 sm:p-8 rounded-3xl sm:rounded-[2.5rem] bg-slate-950/95 border border-white/20 shadow-2xl space-y-5 relative overflow-hidden modern-animated-card"
           >
             
             {/* Ambient Glow */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/25 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-500/25 rounded-full blur-3xl" />
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative flex justify-center items-center">
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <CuteBabySticker id="peach-goma-kiss" size={96} />
-              </motion.div>
-            </div>
+            {/* Elegant Calligraphy Birthday Wish Typography Emblem */}
+            <BirthdayWishHeader />
 
-            <div className="space-y-2 relative">
-              <span className="px-3.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="space-y-2 relative px-2">
+              <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 inline-flex items-center gap-1.5 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5" />
-                A VIP Birthday Celebration Awaits You!
+                <span>A VIP Birthday Celebration Awaits You!</span>
               </span>
               <h1 className="text-2xl sm:text-3xl font-serif font-extrabold text-white">
                 For {wish.recipientName || 'You'}
@@ -408,6 +365,30 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
               <span>Tap to Open Celebration ✨</span>
             </motion.button>
           </motion.div>
+
+          {/* Pre-start Navigation Links at bottom */}
+          <div className="mt-4 flex items-center justify-center gap-3">
+            {onExitPreview && (
+              <button
+                type="button"
+                onClick={onExitPreview}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/15 text-xs text-slate-300 hover:text-white transition cursor-pointer shadow-md"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Editor</span>
+              </button>
+            )}
+
+            {isStandaloneRecipient && (
+              <a
+                href="/"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/15 text-xs text-rose-300 hover:text-rose-200 transition shadow-md"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Create Your Own Wish</span>
+              </a>
+            )}
+          </div>
         </div>
       ) : (
         /* 2. Full Active Celebration Stage */
@@ -436,13 +417,48 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
             )}
           </div>
 
-          {/* Clean Audio Now Playing Badge */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-white/15 text-xs text-slate-300 backdrop-blur-md shadow-md">
-            <span className="text-base">{currentSong.icon}</span>
-            <span className="font-semibold text-rose-300">{currentSong.name}</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-medium">
-              {currentSong.genre}
-            </span>
+          {/* Interactive Music Player Bar - Tap to Play / Pause anytime on Mobile or Desktop */}
+          <div className="flex items-center gap-2.5 px-3.5 sm:px-4 py-2 rounded-full bg-slate-900/90 border border-amber-400/35 text-xs text-slate-200 shadow-xl backdrop-blur-md">
+            <button
+              type="button"
+              onClick={handleToggleMusic}
+              className="flex items-center gap-2.5 cursor-pointer group text-left"
+              title={isPlayingMusic ? 'Pause Music' : 'Play Birthday Music'}
+            >
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold shadow transition-transform group-hover:scale-105 ${
+                isPlayingMusic ? 'bg-gradient-to-tr from-amber-400 to-rose-500 text-slate-950' : 'bg-white/10 text-amber-300 border border-white/20'
+              }`}>
+                {isPlayingMusic ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-amber-200 truncate max-w-[130px] sm:max-w-[200px]">
+                    {currentSong.name}
+                  </span>
+                  {isPlayingMusic && (
+                    <span className="flex items-end gap-0.5 h-3 shrink-0">
+                      <span className="w-0.5 h-2 bg-rose-400 animate-pulse" />
+                      <span className="w-0.5 h-3 bg-amber-400 animate-pulse" />
+                      <span className="w-0.5 h-1.5 bg-rose-400 animate-pulse" />
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 truncate">
+                  {isPlayingMusic ? 'Playing • Tap to pause' : 'Tap to Play Birthday Song 🎵'}
+                </p>
+              </div>
+            </button>
+
+            <div className="w-px h-5 bg-white/15" />
+
+            <button
+              type="button"
+              onClick={handleToggleMute}
+              className="p-1 rounded-lg text-slate-300 hover:text-white transition"
+              title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
           </div>
 
           {/* SURPRISE 1: Real Cake Display on an Illuminated Birthday Stage Pedestal with Pyrotechnics */}
@@ -477,150 +493,110 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
             ))}
           </div>
 
-          {/* SURPRISE 2: Gift Card with "Open Card" Button */}
+          {/* SURPRISE 2: Realistic 3D Physical Cardboard Greeting Card (Bi-Fold) */}
           <div className="w-full max-w-2xl">
-            {!isGiftOpened ? (
-              <div 
-                id="unopened-gift-card"
-                className="w-full p-7 rounded-3xl bg-slate-950/85 border-2 border-dashed border-rose-400/60 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center space-y-4"
-              >
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500/20 via-amber-500/20 to-purple-500/20 border border-rose-400/40 flex items-center justify-center shadow-lg">
-                  <CuteBabySticker id="love-gift" size={60} />
-                </div>
-
-                <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-bold font-serif text-white">
-                    A Birthday Gift Card from {wish.senderName || 'Your Loved One'}
-                  </h3>
-                  <p className="text-xs text-slate-300 max-w-md">
-                    Tap the button below to break the seal, open your personal gift card, and read your message & memories!
-                  </p>
-                </div>
-
-                <button
-                  id="btn-open-gift-card"
-                  type="button"
-                  onClick={handleOpenGiftCard}
-                  className="px-8 py-3 rounded-2xl bg-gradient-to-r from-rose-500 via-amber-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2"
-                >
-                  <Gift className="w-4 h-4" />
-                  <span>Open Gift Card Now ✨</span>
-                </button>
-              </div>
-            ) : (
-              /* Opened Letter & Memory Photo Display */
-              <div className="w-full bg-slate-950/85 border border-white/20 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6 animate-fadeIn">
-                
-                {/* Photo & Letter layout */}
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  
-                  {/* Polaroid Frame if Photo exists */}
-                  {wish.photoUrl && (
-                    <div className="p-3 bg-white rounded-2xl shadow-2xl -rotate-1 hover:rotate-0 transition duration-300 shrink-0 max-w-[210px]">
-                      <img
-                        src={wish.photoUrl}
-                        alt="Celebration Memory"
-                        className="w-44 h-48 object-cover rounded-xl shadow-inner"
-                      />
-                      <p className="text-xs text-stone-800 text-center font-serif mt-2 font-semibold truncate">
-                        {wish.photoCaption || 'Memories to Cherish ✨'}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Personal Letter Text */}
-                  <div className="flex-1 space-y-3 text-left">
-                    {wish.headline && (
-                      <h3 className="text-lg sm:text-xl font-serif font-bold text-rose-300">
-                        "{wish.headline}"
-                      </h3>
-                    )}
-
-                    <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-sans whitespace-pre-wrap">
-                      {wish.message}
-                    </p>
-
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-                      <span>With all my love & warmest prayers,</span>
-                      <span className="font-bold text-rose-300 text-sm">
-                        {wish.senderName} ({wish.relationship})
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Secret Message Scratch/Tap Card */}
-                {wish.secretMessage && (
-                  <div className="pt-4 border-t border-white/10">
-                    <div
-                      onClick={() => {
-                        soundManager.playClick();
-                        setIsSecretRevealed(!isSecretRevealed);
-                      }}
-                      className="p-4 rounded-2xl bg-slate-900/90 border border-purple-500/40 hover:border-purple-400 cursor-pointer transition flex items-center justify-between shadow-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-300">
-                          {isSecretRevealed ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-purple-200">
-                            {isSecretRevealed ? 'Secret Note Unlocked:' : 'Secret Message from ' + wish.senderName}
-                          </p>
-                          <p className="text-xs text-slate-300 mt-0.5">
-                            {isSecretRevealed ? wish.secretMessage : 'Tap here to reveal your secret note...'}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-purple-400 font-semibold underline">
-                        {isSecretRevealed ? 'Hide' : 'Reveal'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Status Video Highlight Banner */}
-                <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-rose-950/50 via-purple-950/40 to-slate-900/60 p-4 rounded-2xl border border-rose-500/20">
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                      <Film className="w-4 h-4 text-rose-400" />
-                      <span>Love this wish? Put it on your WhatsApp Status!</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Generates a 30-second animated story with your cake, music, and greeting.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowStatusVideoModal(true)}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white font-bold text-xs shadow-md transition cursor-pointer shrink-0"
-                  >
-                    Generate 30s Status Video
-                  </button>
-                </div>
-
-                {/* Recipient Reaction Action */}
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-xs text-slate-400">
-                    Made with love on Advanced Birthday Wishes
-                  </span>
-
-                  <a
-                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Thank you so much ${wish.senderName}! I just opened your birthday wish and loved the cake & message! 🥰🎂`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition shadow-md"
-                  >
-                    <Smile className="w-4 h-4" />
-                    <span>Send Thank You to {wish.senderName}</span>
-                  </a>
-                </div>
-
-              </div>
-            )}
+            <RealBifoldBirthdayCard
+              wish={wish}
+              isOpen={isGiftOpened}
+              onOpenCard={handleOpenGiftCard}
+              onCloseCard={() => setIsGiftOpened(false)}
+              onOpenStatusVideo={() => setShowStatusVideoModal(true)}
+            />
           </div>
+
+          {/* SURPRISE 3: Luxury 3D Surprise Gift Box Unboxing */}
+          <InteractiveGiftBox wish={wish} />
+
+          {/* ================= CELEBRATION FOOTER CONTROLS ================= */}
+          <footer className="w-full max-w-3xl mx-auto mt-8 pt-5 pb-2 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 rounded-3xl bg-slate-950/85 border border-white/15 backdrop-blur-xl shadow-2xl">
+            
+            {/* Left: Navigation Actions (Back to Editor / Start New Wish) */}
+            <div className="flex items-center gap-2">
+              {onExitPreview && (
+                <button
+                  id="btn-footer-back-to-editor"
+                  type="button"
+                  onClick={onExitPreview}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-xs font-semibold text-slate-200 hover:text-white transition cursor-pointer shadow-sm active:scale-95"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Editor</span>
+                </button>
+              )}
+
+              {isStandaloneRecipient && (
+                <a
+                  id="btn-footer-create-wish"
+                  href="/"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-rose-500/20 to-purple-500/20 hover:from-rose-500/30 hover:to-purple-500/30 border border-rose-400/40 text-xs font-bold text-rose-200 transition shadow-sm active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-rose-300" />
+                  <span>Start New Wish</span>
+                </a>
+              )}
+            </div>
+
+            {/* Center: Celebration Controls (Confetti, Replay, Mute) */}
+            <div className="flex items-center gap-2">
+              {wish.enableConfettiPopper && (
+                <button
+                  id="btn-footer-confetti"
+                  type="button"
+                  onClick={handleFireConfetti}
+                  title="Fire Party Poppers!"
+                  className="p-2.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/20 text-amber-300 hover:text-amber-200 transition active:scale-90 cursor-pointer shadow-sm"
+                >
+                  <PartyPopper className="w-4 h-4" />
+                </button>
+              )}
+
+              <button
+                id="btn-footer-replay"
+                type="button"
+                onClick={handleResetCelebration}
+                title="Replay Celebration"
+                className="p-2.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/20 text-slate-200 hover:text-white transition active:scale-90 cursor-pointer shadow-sm"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+
+              <button
+                id="btn-footer-mute"
+                type="button"
+                onClick={handleToggleMute}
+                title={isMuted ? 'Turn Sound On' : 'Mute Sound'}
+                className="p-2.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/20 text-slate-200 hover:text-white transition active:scale-90 cursor-pointer shadow-sm"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />}
+              </button>
+            </div>
+
+            {/* Right: WhatsApp Status Video & Thank You */}
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-footer-status-video"
+                type="button"
+                onClick={() => setShowStatusVideoModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-rose-500/25 transition active:scale-95 cursor-pointer shrink-0"
+              >
+                <Film className="w-3.5 h-3.5" />
+                <span>Status Video</span>
+              </button>
+
+              <a
+                id="btn-footer-thankyou"
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Thank you so much ${wish.senderName}! I just opened your birthday wish and loved the cake & message! 🥰🎂`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
+                title={`Send Thank You to ${wish.senderName}`}
+              >
+                <Smile className="w-4 h-4" />
+                <span>Thank You</span>
+              </a>
+            </div>
+
+          </footer>
 
         </motion.main>
       )}
