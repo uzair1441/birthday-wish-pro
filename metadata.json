@@ -1,0 +1,6 @@
+{
+  "name": "Advanced Birthday Wish Creator",
+  "description": "Create personalized, interactive luxury birthday celebrations with uncut bakery cakes, celebratory music, cute animated stickers, status videos, and VIP link delivery.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
