@@ -237,7 +237,7 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
             <div
               key={balloon.id}
               onClick={(e) => handlePopBalloon(balloon.id, e, balloon.blessing)}
-              className="absolute pointer-events-auto cursor-pointer transition-transform hover:scale-125 active:scale-90"
+              className="absolute pointer-events-auto cursor-pointer transition-transform hover:scale-125 active:scale-90 transform-gpu will-change-transform"
               style={{
                 left: `${balloon.x}%`,
                 bottom: '-80px',
@@ -608,17 +608,17 @@ export const CelebrationView: React.FC<CelebrationViewProps> = ({
         wish={wish}
       />
 
-      {/* Floating Balloon Keyframe Style */}
+      {/* Floating Balloon Keyframe Style - 3D Hardware accelerated for 90Hz / 120Hz */}
       <style>{`
         @keyframes floatUp {
           0% {
-            transform: translateY(0) rotate(0deg);
+            transform: translate3d(0, 0, 0) rotate(0deg);
           }
           50% {
-            transform: translateY(-50vh) rotate(5deg);
+            transform: translate3d(0, -50vh, 0) rotate(5deg);
           }
           100% {
-            transform: translateY(-110vh) rotate(-5deg);
+            transform: translate3d(0, -115vh, 0) rotate(-5deg);
           }
         }
       `}</style>

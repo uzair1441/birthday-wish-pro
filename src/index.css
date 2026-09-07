@@ -1,11 +1,33 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     background-color: #070510;
     color: #f8fafc;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+  }
+
+  /* Force dedicated GPU Compositing Layers for High Refresh Rate (90Hz / 120Hz) */
+  .transform-gpu,
+  .animate-balloon-float-l,
+  .animate-balloon-float-r,
+  .animate-spotlight,
+  .animate-flag-sway,
+  .animate-float-slow,
+  .animate-float-sway,
+  .card-perspective {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 
@@ -184,19 +206,19 @@
 
 @keyframes balloonFloatLeft {
   0%, 100% {
-    transform: translateY(0px) rotate(-2deg);
+    transform: translate3d(0, 0, 0) rotate(-2deg);
   }
   50% {
-    transform: translateY(-16px) rotate(2deg);
+    transform: translate3d(0, -16px, 0) rotate(2deg);
   }
 }
 
 @keyframes balloonFloatRight {
   0%, 100% {
-    transform: translateY(0px) rotate(2deg);
+    transform: translate3d(0, 0, 0) rotate(2deg);
   }
   50% {
-    transform: translateY(-18px) rotate(-2deg);
+    transform: translate3d(0, -18px, 0) rotate(-2deg);
   }
 }
 

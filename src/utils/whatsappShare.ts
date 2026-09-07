@@ -313,29 +313,19 @@ export function generateWhatsAppCardDataUrl(
 
 /**
  * Formats a clean, high-conversion WhatsApp message with the short link clearly positioned.
+ * Format:
+ * [Sender] created a special interactive birthday celebration surprise for you. Check your surprise here:
+ * [link]
  */
 export function formatWhatsAppMessage(options: WhatsAppCardOptions): string {
   const { recipientName, senderName, shareUrl } = options;
-  const name = recipientName?.trim() || 'My Friend';
-  const sender = senderName?.trim() ? senderName : 'Someone Special';
+  const name = recipientName?.trim() || 'You';
+  const sender = senderName?.trim() || 'Someone special';
 
-  return `✨ 🎂 *HAPPY BIRTHDAY WISH!* 🎂 ✨
+  return `✨ 🎂 *HAPPY BIRTHDAY!* 🎂 ✨
 
-🌟 *Dear ${name}*,
-${sender} has created a special interactive birthday surprise celebration just for you! 💖
-
-🎁 *اس لنک میں آپ کے لیے ایک پیارا سا برتھ ڈے سرپرائز ہے!*
-Tap the link below to cut your cake, blow glowing candles & unwrap your gift! 🍰🕯️
-
-👉 ${shareUrl}
-
-🎂 *Celebration Highlights:*
-• 🍰 Interactive Bakery Cake Cutting Ceremony
-• 🕯️ Glowing Candle Blowout with Music
-• 💌 Heartfelt Keepsake Letter & Photo
-• 🎁 VIP Birthday Gift & Prayers
-
-Open the celebration link now! 🥳✨`;
+${sender} created a special interactive birthday celebration surprise for you. Check your surprise here:
+👉 ${shareUrl}`;
 }
 
 /**

@@ -207,7 +207,7 @@ export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
       </div>
 
       {/* 5. Left Flank Grand Balloon Arch Column (Fixed on Left Edge, Non-Intrusive) */}
-      <div className="absolute top-20 sm:top-24 left-1 sm:left-3 md:left-6 lg:left-8 bottom-6 w-20 sm:w-28 md:w-36 lg:w-44 pointer-events-auto z-15 hidden sm:flex flex-col items-center justify-start animate-balloon-float-l scale-90 md:scale-100 origin-top-left">
+      <div className="absolute top-20 sm:top-24 left-1 sm:left-3 md:left-6 lg:left-8 bottom-6 w-20 sm:w-28 md:w-36 lg:w-44 pointer-events-auto z-15 hidden sm:flex flex-col items-center justify-start animate-balloon-float-l scale-90 md:scale-100 origin-top-left transform-gpu will-change-transform">
         
         {/* Crown Star Foil Balloon */}
         <motion.div
@@ -283,7 +283,7 @@ export const BirthdayStageDecor: React.FC<BirthdayStageDecorProps> = ({
       </div>
 
       {/* 6. Right Flank Grand Balloon Arch Column (Fixed on Right Edge, Non-Intrusive) */}
-      <div className="absolute top-20 sm:top-24 right-1 sm:right-3 md:right-6 lg:right-8 bottom-6 w-20 sm:w-28 md:w-36 lg:w-44 pointer-events-auto z-15 hidden sm:flex flex-col items-center justify-start animate-balloon-float-r scale-90 md:scale-100 origin-top-right">
+      <div className="absolute top-20 sm:top-24 right-1 sm:right-3 md:right-6 lg:right-8 bottom-6 w-20 sm:w-28 md:w-36 lg:w-44 pointer-events-auto z-15 hidden sm:flex flex-col items-center justify-start animate-balloon-float-r scale-90 md:scale-100 origin-top-right transform-gpu will-change-transform">
         
         {/* Crown Foil Heart Balloon */}
         <motion.div

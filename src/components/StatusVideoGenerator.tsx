@@ -3,7 +3,7 @@ import { BirthdayWishData } from '../types';
 import { CAKE_OPTIONS, THEME_OPTIONS } from '../data/presets';
 import { GIFT_BOX_OPTIONS, SURPRISE_GIFT_OPTIONS } from '../data/giftPresets';
 import { Download, Share2, Sparkles, Film, X, RefreshCw, Smartphone, Volume2, CheckCircle2 } from 'lucide-react';
-import { getTrackAudioUrl, BUILTIN_SONGS } from '../utils/audio';
+import { getTrackAudioUrl, BUILTIN_SONGS, soundManager } from '../utils/audio';
 
 interface StatusVideoGeneratorProps {
   isOpen: boolean;
@@ -42,6 +42,11 @@ export const StatusVideoGenerator: React.FC<StatusVideoGeneratorProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Immediately stop background celebration music when video generator is opened
+    try {
+      soundManager.stopMelody();
+    } catch {}
 
     // Load cake photo
     const cakeImg = new Image();
@@ -1219,6 +1224,11 @@ export const StatusVideoGenerator: React.FC<StatusVideoGeneratorProps> = ({
 
   // Start animated generation & real recording with the EXACT selected audio track
   const startGenerationAndRecording = async () => {
+    // Crucial: Stop any currently playing background wish music so audio doesn't overlap/mix!
+    try {
+      soundManager.stopMelody();
+    } catch {}
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
