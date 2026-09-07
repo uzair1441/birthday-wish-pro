@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BirthdayWishData, PaymentAccountConfig } from '../../types';
-import { encodeWishToUrl, saveWishToHistory } from '../../utils/codec';
+import { createShortWishLink, saveWishToHistory } from '../../utils/codec';
 import { soundManager } from '../../utils/audio';
 import { verifyTransactionId } from '../../utils/tidVerification';
+import { 
+  shareToWhatsAppWithCard, 
+  downloadWhatsAppCard, 
+  formatWhatsAppMessage 
+} from '../../utils/whatsappShare';
 import { 
   CheckCircle2, 
   Copy, 
@@ -17,7 +22,10 @@ import {
   Sparkles, 
   Settings,
   Eye,
-  PartyPopper
+  PartyPopper,
+  Download,
+  Share2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { CuteBabySticker } from '../CuteBabySticker';
 import confetti from 'canvas-confetti';
@@ -46,6 +54,9 @@ export const StepPaymentShare: React.FC<StepPaymentShareProps> = ({
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [isDuplicateAlert, setIsDuplicateAlert] = useState<boolean>(false);
   const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
+  const [isDownloadingCard, setIsDownloadingCard] = useState<boolean>(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState<boolean>(false);
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -62,30 +73,28 @@ export const StepPaymentShare: React.FC<StepPaymentShareProps> = ({
     if (isDemoBypass) {
       setIsVerifying(true);
       soundManager.playClick();
-      setTimeout(() => {
-        const testTid = `DEMO-TEST-${Date.now().toString().slice(-6)}`;
-        const updatedData: BirthdayWishData = {
-          ...data,
-          isPaid: true,
-          transactionId: testTid
-        };
-        onChange(updatedData);
-        saveWishToHistory(updatedData);
+      const testTid = `DEMO-${Date.now().toString().slice(-6)}`;
+      const updatedData: BirthdayWishData = {
+        ...data,
+        isPaid: true,
+        transactionId: testTid
+      };
+      onChange(updatedData);
+      saveWishToHistory(updatedData);
 
-        const encoded = encodeWishToUrl(updatedData);
-        const url = `${window.location.origin}${window.location.pathname}#wish=${encoded}`;
-        setShareUrl(url);
+      // Generate ultra-short link
+      const shortLink = await createShortWishLink(updatedData);
+      setShareUrl(shortLink);
 
-        setIsVerifying(false);
-        soundManager.playCelebrationFanfare();
+      setIsVerifying(false);
+      soundManager.playCelebrationFanfare();
 
-        confetti({
-          particleCount: 80,
-          spread: 80,
-          origin: { y: 0.5 },
-          colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6']
-        });
-      }, 300);
+      confetti({
+        particleCount: 80,
+        spread: 80,
+        origin: { y: 0.5 },
+        colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6']
+      });
       return;
     }
 
@@ -128,9 +137,9 @@ export const StepPaymentShare: React.FC<StepPaymentShareProps> = ({
     onChange(updatedData);
     saveWishToHistory(updatedData);
 
-    const encoded = encodeWishToUrl(updatedData);
-    const url = `${window.location.origin}${window.location.pathname}#wish=${encoded}`;
-    setShareUrl(url);
+    // Generate ultra-short link
+    const shortLink = await createShortWishLink(updatedData);
+    setShareUrl(shortLink);
 
     setIsVerifying(false);
     setVerificationSuccess('Payment Transaction ID verified successfully! VIP Celebration link unlocked.');
@@ -144,17 +153,65 @@ export const StepPaymentShare: React.FC<StepPaymentShareProps> = ({
     });
   };
 
-  // Pre-generate URL if already marked paid
-  React.useEffect(() => {
+  // Pre-generate clean short URL if already marked paid
+  useEffect(() => {
+    let isMounted = true;
     if (data.isPaid && !shareUrl) {
-      const encoded = encodeWishToUrl(data);
-      setShareUrl(`${window.location.origin}${window.location.pathname}#wish=${encoded}`);
+      setIsGeneratingLink(true);
+      createShortWishLink(data)
+        .then((url) => {
+          if (isMounted) {
+            setShareUrl(url);
+            setIsGeneratingLink(false);
+          }
+        })
+        .catch(() => {
+          if (isMounted) setIsGeneratingLink(false);
+        });
     }
-  }, [data, shareUrl]);
+    return () => {
+      isMounted = false;
+    };
+  }, [data.isPaid, data, shareUrl]);
 
-  const whatsappMessage = encodeURIComponent(
-    `🎉 Hey ${data.recipientName}! Someone special made an interactive birthday celebration for you! 🎂✨ Open your magical cake & wish here:\n${shareUrl}`
-  );
+  const handleShareWhatsApp = async () => {
+    if (!shareUrl) return;
+    setIsSharingWhatsApp(true);
+    soundManager.playClick();
+    try {
+      await shareToWhatsAppWithCard({
+        recipientName: data.recipientName,
+        senderName: data.senderName,
+        age: data.age,
+        shareUrl
+      });
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
+
+  const handleDownloadCard = async () => {
+    if (!shareUrl) return;
+    setIsDownloadingCard(true);
+    soundManager.playClick();
+    try {
+      await downloadWhatsAppCard({
+        recipientName: data.recipientName,
+        senderName: data.senderName,
+        age: data.age,
+        shareUrl
+      });
+    } finally {
+      setIsDownloadingCard(false);
+    }
+  };
+
+  const whatsappDirectMessage = formatWhatsAppMessage({
+    recipientName: data.recipientName,
+    senderName: data.senderName,
+    age: data.age,
+    shareUrl
+  });
 
   return (
     <div id="step-payment-share-container" className="space-y-6">
@@ -503,67 +560,202 @@ export const StepPaymentShare: React.FC<StepPaymentShareProps> = ({
           </div>
         </div>
       ) : (
-        /* Shareable Link Unlocked State */
-        <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-white/[0.02] to-amber-500/10 border border-emerald-400/50 shadow-2xl space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center shadow-lg">
-              <PartyPopper className="w-7 h-7" />
+        /* Shareable Link Unlocked State with Ultra-Short Link & WhatsApp Picture Card */
+        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-white/[0.02] to-amber-500/10 border border-emerald-400/50 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center shadow-lg shrink-0">
+                <PartyPopper className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 font-serif">
+                  VIP Birthday Surprise Ready to Share! 🎉
+                </h3>
+                <p className="text-xs text-emerald-300">
+                  Payment verified ({data.transactionId}). Your clean, short celebration link is generated!
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 font-serif">
-                Birthday Link Ready to Send! 🎉
-              </h3>
-              <p className="text-xs text-emerald-300">
-                Payment verified ({data.transactionId}). Your personalized link is generated and active forever.
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold self-start sm:self-auto">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Ultra-Short URL Active</span>
+            </div>
+          </div>
+
+          {/* Clean Short Link Box */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span>🔗 Your Short Celebration Link</span>
+                <span className="text-[10px] text-emerald-400 font-mono bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                  Ultra-Short Mobile Friendly
+                </span>
+              </label>
+              {shareUrl && (
+                <span className="text-[11px] text-slate-500 font-mono">
+                  {shareUrl.length} characters
+                </span>
+              )}
+            </div>
+
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-black/50 border border-white/[0.1] flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <input
+                type="text"
+                readOnly
+                value={isGeneratingLink ? 'Generating clean short link...' : shareUrl}
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/[0.04] text-xs sm:text-sm text-emerald-300 font-mono border border-white/[0.06] select-all focus:outline-none truncate"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!shareUrl) return;
+                  copyToClipboard(shareUrl, 'share-link');
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-lg active:scale-95 shrink-0"
+              >
+                {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{linkCopied ? 'Short Link Copied!' : 'Copy Short Link'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* WhatsApp Celebration Greeting Card Preview (As Requested) */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-indigo-950/60 via-purple-950/40 to-slate-950/80 border border-amber-500/30 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🖼️</span>
+                <h4 className="text-sm font-bold text-white">
+                  WhatsApp Birthday Card Picture Preview
+                </h4>
+              </div>
+              <span className="text-[11px] text-amber-300 font-medium bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+                Shared with WhatsApp
+              </span>
+            </div>
+
+            {/* Visual Card Frame */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950/60 to-slate-900 border-2 border-amber-400/40 text-center relative overflow-hidden shadow-2xl space-y-4">
+              {/* Corner Ornaments */}
+              <div className="absolute top-2 left-2 text-amber-400/50 text-xs">✦</div>
+              <div className="absolute top-2 right-2 text-amber-400/50 text-xs">✦</div>
+              <div className="absolute bottom-2 left-2 text-amber-400/50 text-xs">✦</div>
+              <div className="absolute bottom-2 right-2 text-amber-400/50 text-xs">✦</div>
+
+              {/* 1. Top Ribbon: "BIRTHDAY WISH" */}
+              <div className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white font-extrabold text-xs sm:text-sm tracking-wider shadow-lg border border-amber-200/40">
+                ✨ 🎂 BIRTHDAY WISH 🎂 ✨
+              </div>
+
+              {/* 2. Recipient Name Header */}
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-widest text-slate-300 font-semibold">
+                  A Special Celebration Dedicated To
+                </p>
+                <h3 className="text-xl sm:text-2xl font-bold font-serif text-amber-300 drop-shadow-md">
+                  {data.recipientName || 'My Favorite Person'}
+                </h3>
+              </div>
+
+              {/* 3. Cake & Celebration Illustration */}
+              <div className="py-2 flex items-center justify-center gap-3">
+                <span className="text-3xl sm:text-4xl animate-bounce">🎈</span>
+                <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.1] shadow-inner text-4xl sm:text-5xl">
+                  🎂
+                </div>
+                <span className="text-3xl sm:text-4xl animate-bounce delay-150">🎉</span>
+              </div>
+
+              {/* 4. Surprise Announcement Box */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-amber-400/40 text-left space-y-1.5 shadow-inner">
+                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs sm:text-sm">
+                  <span>🎁</span>
+                  <span>SPECIAL SURPRISE AWAITS YOU!</span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
+                  اس لنک میں آپ کے لیے ایک پیارا سا برتھ ڈے سرپرائز ہے!
+                </p>
+                <p className="text-[11px] text-slate-300">
+                  Tap the celebration link to cut your personalized cake, blow glowing candles, unwrap your secret gift & read your keepsake letter!
+                </p>
+                <div className="pt-1 flex items-center gap-1.5 text-[11px] text-rose-300 font-semibold">
+                  <span>👉</span>
+                  <span className="font-mono text-emerald-300 underline underline-offset-2">
+                    {shareUrl || 'https://.../?w=surprise'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 5. Sender Footer */}
+              <p className="text-xs italic text-rose-300/90 pt-1">
+                {data.senderName ? `With Lots of Love from ${data.senderName} ❤️` : 'With Warmest Love & Prayers ❤️'}
               </p>
             </div>
+
+            <p className="text-xs text-slate-400 text-center">
+              💡 Yeh card picture aur clean short link WhatsApp par send kiye jayenge taake recipient ko foran pyara sa surprise preview nazar aaye!
+            </p>
           </div>
 
-          {/* Share URL Box */}
-          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/[0.03] text-xs text-slate-200 font-mono border border-white/[0.06] truncate select-all focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                copyToClipboard(shareUrl, 'share-link');
-                setLinkCopied(true);
-                setTimeout(() => setLinkCopied(false), 2000);
-              }}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-lg active:scale-95"
-            >
-              {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{linkCopied ? 'Link Copied!' : 'Copy Link'}</span>
-            </button>
-          </div>
+          {/* Sharing Action Channels */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 1. Main WhatsApp Share with Picture Button */}
+              <button
+                type="button"
+                disabled={isSharingWhatsApp || !shareUrl}
+                onClick={handleShareWhatsApp}
+                className="p-4 rounded-2xl bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20bd5a] hover:to-[#0f7a6e] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition cursor-pointer active:scale-95 shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+              >
+                {isSharingWhatsApp ? (
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Smartphone className="w-5 h-5 shrink-0" />
+                )}
+                <span>Share to WhatsApp with Picture</span>
+                <ImageIcon className="w-4 h-4 opacity-80 shrink-0" />
+              </button>
 
-          {/* Direct Share Channels */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* WhatsApp Share Button */}
-            <a
-              href={`https://api.whatsapp.com/send?text=${whatsappMessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-2xl bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/40 text-emerald-300 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 shadow-md"
-            >
-              <Smartphone className="w-4 h-4 text-[#25D366]" />
-              <span>Send via WhatsApp</span>
-              <ExternalLink className="w-3.5 h-3.5 text-[#25D366]" />
-            </a>
+              {/* 2. Download Birthday Card Picture */}
+              <button
+                type="button"
+                disabled={isDownloadingCard || !shareUrl}
+                onClick={handleDownloadCard}
+                className="p-4 rounded-2xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.15] text-amber-300 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-50"
+              >
+                {isDownloadingCard ? (
+                  <span className="inline-block w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 text-amber-400" />
+                )}
+                <span>Download Card Picture (1080p)</span>
+              </button>
+            </div>
 
-            {/* Open & Experience celebration button */}
-            <button
-              type="button"
-              onClick={onPreviewCelebration}
-              className="p-4 rounded-2xl bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg active:scale-95"
-            >
-              <Eye className="w-4 h-4" />
-              <span>Open Birthday Experience</span>
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Direct WhatsApp Web / App text link */}
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappDirectMessage)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] text-slate-300 hover:text-white text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Open in WhatsApp Web / App</span>
+              </a>
+
+              {/* Open & Experience celebration button */}
+              <button
+                type="button"
+                onClick={onPreviewCelebration}
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-lg active:scale-95"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Open Birthday Experience</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

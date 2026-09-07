@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { BirthdayWishData } from '../../types';
 import { PRESET_MESSAGES } from '../../data/presets';
 import { CUTE_STICKER_LIST, CuteBabySticker } from '../CuteBabySticker';
-import { Image as ImageIcon, Upload, Trash2, Check } from 'lucide-react';
+import { Image as ImageIcon, Upload, Trash2, Check, Loader2 } from 'lucide-react';
+import { compressImage } from '../../utils/codec';
 
 interface StepMessagePhotoProps {
   data: BirthdayWishData;
@@ -11,6 +12,7 @@ interface StepMessagePhotoProps {
 
 export const StepMessagePhoto: React.FC<StepMessagePhotoProps> = ({ data, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState<boolean>(false);
 
   const applyPresetMessage = (preset: typeof PRESET_MESSAGES[0]) => {
     onChange({
@@ -19,20 +21,28 @@ export const StepMessagePhoto: React.FC<StepMessagePhotoProps> = ({ data, onChan
     });
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 4 * 1024 * 1024) {
-      alert('Photo is a bit too large! Please choose an image under 4MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Photo is too large! Please choose an image under 10MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      onChange({ photoUrl: event.target?.result as string });
-    };
-    reader.readAsDataURL(file);
+    setIsProcessingPhoto(true);
+    try {
+      const compressed = await compressImage(file, 450, 0.72);
+      onChange({ photoUrl: compressed });
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        onChange({ photoUrl: event.target?.result as string });
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsProcessingPhoto(false);
+    }
   };
 
   const removePhoto = () => {

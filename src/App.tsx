@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BirthdayWishData, PaymentAccountConfig } from './types';
 import { DEFAULT_PAYMENT_CONFIG } from './data/presets';
-import { decodeWishFromUrl } from './utils/codec';
+import { decodeWishFromUrl, resolveWishFromCurrentUrl } from './utils/codec';
 import { soundManager } from './utils/audio';
 
 import { Navbar } from './components/Navbar';
@@ -76,29 +76,26 @@ export default function App() {
     }
   });
 
-  // Check URL hash or query param for recipient mode
+  // Check URL (short id ?w=, compact ?c=, or legacy #wish=) for recipient mode
   useEffect(() => {
-    const parseUrlForWish = () => {
-      let encodedStr = '';
-      if (window.location.hash.startsWith('#wish=')) {
-        encodedStr = window.location.hash.replace('#wish=', '');
-      } else {
-        const params = new URLSearchParams(window.location.search);
-        const qWish = params.get('wish');
-        if (qWish) encodedStr = qWish;
-      }
-
-      if (encodedStr) {
-        const decoded = decodeWishFromUrl(encodedStr);
+    const parseUrlForWish = async () => {
+      try {
+        const decoded = await resolveWishFromCurrentUrl();
         if (decoded) {
           setStandaloneWish(decoded);
         }
+      } catch (err) {
+        console.warn('Could not resolve wish from URL:', err);
       }
     };
 
     parseUrlForWish();
     window.addEventListener('hashchange', parseUrlForWish);
-    return () => window.removeEventListener('hashchange', parseUrlForWish);
+    window.addEventListener('popstate', parseUrlForWish);
+    return () => {
+      window.removeEventListener('hashchange', parseUrlForWish);
+      window.removeEventListener('popstate', parseUrlForWish);
+    };
   }, []);
 
   const handleUpdateWish = (updates: Partial<BirthdayWishData>) => {
